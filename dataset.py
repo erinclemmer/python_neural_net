@@ -9,15 +9,15 @@ class DataObject:
         self.petal_length_cm = petal_length_cm
         self.petal_width_cm = petal_width_cm
         self.species = species
-        self.network_output = [0, 0, 0, 0]
+        self.network_output = [0, 0, 0]
         if species == 'Iris-setosa':
-            self.network_output = [1, 0, 0, 0]
+            self.network_output = [1, 0, 0]
         if species == 'Iris-versicolor':
-            self.network_output = [0, 1, 0, 0]
+            self.network_output = [0, 1, 0]
         if species == 'Iris-virginica':
-            self.network_output = [0, 0, 1, 0]
+            self.network_output = [0, 0, 1]
         self.network_output = torch.tensor(self.network_output)
-        self.network_input = torch.tensor([self.sepal_length_cm, self.sepal_width_cm, self.petal_length_cm, self.petal_width_cm])
+        self.network_input = torch.tensor([self.sepal_length_cm / 10, self.sepal_width_cm / 10, self.petal_length_cm / 10, self.petal_width_cm / 10])
 
     def __repr__(self):
         return (f"DataObject(Id: {self.id}, SepalLengthCm: {self.sepal_length_cm}, "
