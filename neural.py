@@ -1,4 +1,6 @@
+import os
 import math
+import json
 from time import time
 from tqdm import tqdm
 from typing import List, Callable, Tuple
@@ -65,15 +67,13 @@ class Network:
         # Per layer
         for i in range(1, self.num_layers):
             # Per neuron
-            for j in range(0, self.weights[i].size()[0]):
-                u[i][j] = torch.dot(self.weights[i][j], u[i - 1]) + self.biases[i][j]
+            u[i] = torch.matmul(self.weights[i], u[i - 1]) + self.biases[i]
         return u
 
     def forward_u(self, u: torch.tensor):
         x = self.initialize_layer_matrix()
         for i in range(0, self.num_layers):
-            for j in range(0, x[i].size()[0]):
-                x[i][j] = sigmoid(u[i][j])
+            x[i] = sigmoid(u[i])
 
         return x
 
@@ -89,6 +89,14 @@ class Network:
         z_k = z[self.num_layers - 1]
         max_idx = get_max_index(z_k)
         return max_idx
+
+    def loss_z(self, z: torch.tensor, y: torch.tensor):
+        y = y.to('cuda:0')
+        z = z.to('cuda:0')
+        self.ensure_output_size(y)
+        self.ensure_output_size(z)
+        l = y - z
+        return (l ** 2) / 2
 
     def loss(self, x: torch.tensor, y: torch.tensor):
         x = x.to('cuda:0')
@@ -122,7 +130,9 @@ class Network:
                 gradients[i] = torch.matmul(weights, grads) * sigmoid_derivative(u[i])
             gradient_derivative[i] = torch.outer(gradients[i], x[i - 1])
 
-        return gradient_derivative, gradients
+        loss = self.loss_z(z, y)
+
+        return gradient_derivative, gradients, loss
     
     def train(self, 
               dataset: List[Tuple[List[float], List[float]]], 
@@ -140,24 +150,36 @@ class Network:
             print(f'Percent Correct: {score / len(dataset) * 100:.2f}%')
 
         def compute_pair(x: torch.tensor, y: torch.tensor):
-            gradient_derivative, gradients = self.backwards(x, y)
+            gradient_derivative, gradients, loss = self.backwards(x, y)
             avg_item_loss = 0
-            for l in list(self.loss(x, y)):
+            for l in list(loss):
                 avg_item_loss += l
             for j in range(1, self.num_layers):
-                self.weights[j] -= alpha * gradient_derivative[j]
-                self.biases[j] -= alpha * gradients[j]
+                self.weights[j] += alpha * gradient_derivative[j]
+                self.biases[j] += alpha * gradients[j]
             return avg_item_loss / y.size()[0]
 
         def do_epoch():
-            print(f'Epoch: {i}')
+            # print(f'Epoch: {i}')
             ttl_loss = 0
             start_time = time()
             for x, y in dataset:
                 ttl_loss += compute_pair(x, y)
-            print(f'Avg backwards time: {(time() - start_time) / len(dataset) * 1000:.4f}ms')
-            print(f'Avg loss: {ttl_loss / len(dataset):.4f}')
-            test_model()
+            # print(f'Avg backwards time: {(time() - start_time) / len(dataset) * 1000:.4f}ms')
+            avg_loss = ttl_loss / len(dataset)
+            # print(f'Avg loss: {avg_loss:.4f}')
+            return float(avg_loss)
 
-        for i in range(epochs):
-            do_epoch()
+        losses = []
+        for _ in tqdm(range(epochs), 'Epoch'):
+            losses.append(do_epoch())
+        if not os.path.exists('results'):
+            os.mkdir('results')
+        with open(f'results/training_stats_a{alpha}_e{epochs}.json', 'w', encoding='utf-8') as f:
+                json.dump({
+                    "network": [len(lyr) for lyr in self.weights],
+                    "alpha": alpha,
+                    "epochs": epochs,
+                    "losses": losses
+                }, f, indent=4)
+        test_model()
