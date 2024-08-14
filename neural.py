@@ -1,4 +1,5 @@
 import math
+from time import time
 from tqdm import tqdm
 from typing import List, Callable, Tuple
 
@@ -128,19 +129,8 @@ class Network:
               alpha: float,
               epochs: int = 5
         ):
-        for i in range(epochs):
-            print(f'Epoch: {i}')
-            ttl_loss = 0
-            for x, y in tqdm(dataset, "Training model"):
-                gradient_derivative, gradients = self.backwards(x, y)
-                avg_item_loss = 0
-                for l in list(self.loss(x, y)):
-                    avg_item_loss += l
-                ttl_loss += avg_item_loss / y.size()[0]
-                for j in range(1, self.num_layers):
-                    self.weights[j] -= alpha * gradient_derivative[j]
-                    self.biases[j] -= alpha * gradients[j]
-            print(f'Avg loss: {ttl_loss / len(dataset):.4f}')
+
+        def test_model():
             score = 0
             for x, y in dataset:
                 prediction = self.predict(x)
@@ -148,3 +138,26 @@ class Network:
                 if prediction == truth:
                     score += 1
             print(f'Percent Correct: {score / len(dataset) * 100:.2f}%')
+
+        def compute_pair(x: torch.tensor, y: torch.tensor):
+            gradient_derivative, gradients = self.backwards(x, y)
+            avg_item_loss = 0
+            for l in list(self.loss(x, y)):
+                avg_item_loss += l
+            for j in range(1, self.num_layers):
+                self.weights[j] -= alpha * gradient_derivative[j]
+                self.biases[j] -= alpha * gradients[j]
+            return avg_item_loss / y.size()[0]
+
+        def do_epoch():
+            print(f'Epoch: {i}')
+            ttl_loss = 0
+            start_time = time()
+            for x, y in dataset:
+                ttl_loss += compute_pair(x, y)
+            print(f'Avg backwards time: {(time() - start_time) / len(dataset) * 1000:.4f}ms')
+            print(f'Avg loss: {ttl_loss / len(dataset):.4f}')
+            test_model()
+
+        for i in range(epochs):
+            do_epoch()
