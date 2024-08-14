@@ -18,7 +18,3 @@ if os.path.exists(SAVE_FILE):
 else:
     network.train(train_dataset, alpha)
     # network.save(SAVE_FILE)
-
-for item in dataset.data_objects:
-    out = network.forward(item.network_input)[network.num_layers - 1]
-    print(out)

@@ -17,6 +17,8 @@ lambda_x_backprop: Callable[[float, torch.tensor], torch.tensor] = lambda u, w: 
 loss: Callable[[torch.tensor, torch.tensor], torch.tensor] = lambda z, y: ((y - z) ** 2) / 2
 loss_derivative: Callable[[torch.tensor, torch.tensor], torch.tensor] = lambda z, y: y - z
 
+get_max_index: Callable[[List[float]], int] = lambda a: max(range(len(a)), key=a.__getitem__)
+
 class Network:
     num_layers: int
     weights: List[torch.tensor]
@@ -26,10 +28,12 @@ class Network:
         self.input_size = layers[0]
         self.output_size = layers[self.num_layers - 1]
         self.weights = [torch.zeros(layers[0], 0).to('cuda:0')]
+        self.biases = [torch.zeros(layers[0], 0).to('cuda:0')]
         for i in range(1, len(layers)):
             num_neurons = layers[i]
             last_num_layers = layers[i - 1] if i > 0 else 0
-            self.weights.append(torch.rand(num_neurons, last_num_layers).to('cuda:0'))
+            self.weights.append(torch.rand(num_neurons, last_num_layers).to('cuda:0') / 10)
+            self.biases.append(torch.rand(num_neurons).to('cuda:0') / 10)
     
     def load(self, file_name: str):
         self.weights = load_file(file_name)["weights"]
@@ -55,14 +59,13 @@ class Network:
     def get_u_mat(self, x: torch.tensor):
         x = x.to('cuda:0')
         self.ensure_input_size(x)
-        u_mat = self.initialize_layer_matrix()
-        u_mat[0] = x
-        u = u_mat
+        u = self.initialize_layer_matrix()
+        u[0] = x
         # Per layer
         for i in range(1, self.num_layers):
             # Per neuron
             for j in range(0, self.weights[i].size()[0]):
-                u[i][j] = torch.dot(self.weights[i][j], u[i - 1])
+                u[i][j] = torch.dot(self.weights[i][j], u[i - 1]) + self.biases[i][j]
         return u
 
     def forward_u(self, u: torch.tensor):
@@ -83,7 +86,7 @@ class Network:
         x = x.to('cuda:0')
         z = self.forward(x)
         z_k = z[self.num_layers - 1]
-        max_idx = max(range(len(z_k)), key=z_k.__getitem__)
+        max_idx = get_max_index(z_k)
         return max_idx
 
     def loss(self, x: torch.tensor, y: torch.tensor):
@@ -111,24 +114,37 @@ class Network:
         gradient_derivative = self.initialize_layer_matrix()
         gradients[self.num_layers - 1] = error * sigmoid_derivative(z)
         
-        rev_lyrs = list(range(1, self.num_layers - 1))
-        rev_lyrs.reverse()
-        for i in rev_lyrs:
-            weights = self.weights[i + 1].t()
-            grads = gradients[i + 1]
-            sig = sigmoid_derivative(u[i])
-            gradients[i] = torch.matmul(weights, grads) * sig
-            gradient_derivative[i] = torch.dot(gradients[i], x[i])
+        for i in range(self.num_layers - 1, 0, -1):
+            if i < self.num_layers - 1:
+                weights = self.weights[i + 1].t()
+                grads = gradients[i + 1]
+                gradients[i] = torch.matmul(weights, grads) * sigmoid_derivative(u[i])
+            gradient_derivative[i] = torch.outer(gradients[i], x[i - 1])
 
-        return gradient_derivative
+        return gradient_derivative, gradients
     
     def train(self, 
               dataset: List[Tuple[List[float], List[float]]], 
               alpha: float,
               epochs: int = 5
         ):
-        for _ in range(epochs):
+        for i in range(epochs):
+            print(f'Epoch: {i}')
+            ttl_loss = 0
             for x, y in tqdm(dataset, "Training model"):
-                gradient_derivative = self.backwards(x, y)
-                for i in range(0, self.num_layers):
-                    self.weights[i] = self.weights[i] - alpha * gradient_derivative[i]
+                gradient_derivative, gradients = self.backwards(x, y)
+                avg_item_loss = 0
+                for l in list(self.loss(x, y)):
+                    avg_item_loss += l
+                ttl_loss += avg_item_loss / y.size()[0]
+                for j in range(1, self.num_layers):
+                    self.weights[j] -= alpha * gradient_derivative[j]
+                    self.biases[j] -= alpha * gradients[j]
+            print(f'Avg loss: {ttl_loss / len(dataset):.4f}')
+            score = 0
+            for x, y in dataset:
+                prediction = self.predict(x)
+                truth = get_max_index(y)
+                if prediction == truth:
+                    score += 1
+            print(f'Percent Correct: {score / len(dataset) * 100:.2f}%')
