@@ -1,4 +1,5 @@
 import os
+import torch
 from time import time
 from neural import Network
 from dataset import Dataset
@@ -7,24 +8,29 @@ SAVE_FILE = 'model.safetensors'
 
 dataset = Dataset('Iris.csv')
 
-alpha = 1e-5
+# relu = lambda t: torch.tensor([max(0, x) for x in t]).to('cuda:0')
+relu = torch.nn.ReLU()
+# relu_derivative = lambda t: torch.tensor([1 if x > 0 else 0 for x in t]).to('cuda:0')
+relu_derivative = lambda t: (t > 0).float()
+
+alpha = 1e-6
 network = Network([
     4, 16, 64, 256, 3
-])
+], relu, relu_derivative)
 
 train_dataset = [(o.network_input, o.network_output) for o in dataset.data_objects]
 
 def train():
     global network
 
-    if os.path.exists(SAVE_FILE):
-        network.load(SAVE_FILE)
-    else:
-        network.train(train_dataset, alpha, 600)
-        network.save(SAVE_FILE)
-    for inp, _ in train_dataset:
-        res = network.forward(inp)
-        print([float(x) for x in list(res[len(res) - 1])])
+    # if os.path.exists(SAVE_FILE):
+    #     network.load(SAVE_FILE)
+    # else:
+    network.train(train_dataset, alpha, 100)
+    network.save(SAVE_FILE)
+    # for inp, _ in train_dataset:
+    #     res = network.forward(inp)
+    #     print([float(x) for x in list(res[len(res) - 1])])
 
 def bench():
     global network

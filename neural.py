@@ -1,6 +1,5 @@
 import os
 import re
-import math
 import json
 from time import time
 from tqdm import tqdm
@@ -27,12 +26,19 @@ class Network:
     num_layers: int
     weights: List[torch.tensor]
 
-    def __init__(self, layers: List[float]):
+    def __init__(
+            self, 
+            layers: List[float], 
+            activation: Callable[[torch.tensor], torch.tensor] = sigmoid, 
+            activation_derivative: Callable[[torch.tensor], torch.tensor] = sigmoid_derivative
+        ):
         self.num_layers = len(layers)
         self.input_size = layers[0]
         self.output_size = layers[self.num_layers - 1]
         self.weights = [torch.zeros(layers[0], 0).to('cuda:0')]
         self.biases = [torch.zeros(layers[0], 0).to('cuda:0')]
+        self.activation = activation
+        self.activation_derivative = activation_derivative
         for i in range(1, len(layers)):
             num_neurons = layers[i]
             last_num_layers = layers[i - 1] if i > 0 else 0
@@ -86,7 +92,7 @@ class Network:
     def forward_u(self, u: torch.tensor):
         x = self.initialize_layer_matrix()
         for i in range(0, self.num_layers):
-            x[i] = sigmoid(u[i])
+            x[i] = self.activation(u[i])
 
         return x
 
@@ -134,13 +140,13 @@ class Network:
         
         gradients = self.initialize_layer_matrix()
         gradient_derivative = self.initialize_layer_matrix()
-        gradients[self.num_layers - 1] = error * sigmoid_derivative(z)
+        gradients[self.num_layers - 1] = error * self.activation_derivative(z)
         
         for i in range(self.num_layers - 1, 0, -1):
             if i < self.num_layers - 1:
                 weights = self.weights[i + 1].t()
                 grads = gradients[i + 1]
-                gradients[i] = torch.matmul(weights, grads) * sigmoid_derivative(u[i])
+                gradients[i] = torch.matmul(weights, grads) * self.activation_derivative(u[i])
             gradient_derivative[i] = torch.outer(gradients[i], x[i - 1])
 
         loss = self.loss_z(z, y)
