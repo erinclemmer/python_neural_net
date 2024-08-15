@@ -1,4 +1,5 @@
 import os
+import re
 import math
 import json
 from time import time
@@ -39,11 +40,23 @@ class Network:
             self.biases.append(torch.rand(num_neurons).to('cuda:0') / 10)
     
     def load(self, file_name: str):
-        self.weights = load_file(file_name)["weights"]
-        self.num_layers = self.weights.size()[0]
+        data = load_file(file_name)
+        self.weights = [None for _ in range(0, len(data.keys()) // 2)]
+        self.biases = [None for _ in range(0, len(data.keys()) // 2)]
+        reg = re.compile('layer_([0-9]+)')
+        for key in data.keys():
+            layer = int(reg.findall(key)[0])
+            if 'weights' in key:
+                self.weights[layer] = data[key].to('cuda:0')
+            if 'bias' in key:
+                self.biases[layer] = data[key].to('cuda:0')
 
     def save(self, file_name: str):
-        save_file({ "weights": self.weights }, file_name)
+        o = { }
+        for lyr in range(0, len(self.weights)):
+            o[f'weights_layer_{lyr}'] = self.weights[lyr]
+            o[f'bias_layer_{lyr}'] = self.biases[lyr]
+        save_file(o, file_name)
 
     def ensure_input_size(self, x: torch.tensor):
         if len(x.size()) > 1 or x.size()[0] != self.input_size:

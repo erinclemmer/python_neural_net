@@ -20,8 +20,11 @@ def train():
     if os.path.exists(SAVE_FILE):
         network.load(SAVE_FILE)
     else:
-        network.train(train_dataset, alpha, 1000)
-        # network.save(SAVE_FILE)
+        network.train(train_dataset, alpha, 600)
+        network.save(SAVE_FILE)
+    for inp, _ in train_dataset:
+        res = network.forward(inp)
+        print([float(x) for x in list(res[len(res) - 1])])
 
 def bench():
     global network
