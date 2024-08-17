@@ -130,6 +130,76 @@ class Network:
         z = self.forward(x)[self.num_layers - 1]
         return z - y
 
+    def backwards_new(self, inp: torch.tensor, truth: torch.tensor):
+        inp = inp.to('cuda:0')
+        truth = truth.to('cuda:0')
+        outp = self.get_u_mat(inp)
+        y_hat = outp[self.num_layers - 1]
+        activations = self.forward_u(outp)
+        loss_derivative = (y_hat - truth)
+        activation_derivative = [self.activation_derivative(lyr) for lyr in outp]
+
+        # k
+        last_layer = self.num_layers - 1
+
+        # assume nxm matrices for weights and 1xn vectors for bias
+        delta = self.initialize_layer_matrix()
+        grad_weights = self.initialize_layer_matrix()
+        grad_bias = self.initialize_layer_matrix()
+
+        # diminsionality for surrounding layers
+        # weights[k]    = dn
+        # weights[k-1]  = dm
+
+        # Derivative of loss w.r.t last layer bias
+        # dL/db^k   = dL/dy^ * dy^/dz[k] * dz[k]/db[k] 
+        #           = (y^ - y) * sigma prime (z[k]) * 1
+        # element wise multiplication
+        grad_bias[last_layer] = loss_derivative * activation_derivative[last_layer]
+        
+        # Intermediate value for saving computation
+        # delta^k   = dL/da[k-1] = dL/dy^ * dy^/dz[k] * dz[k]/da[k-1] 
+        #           = (y^ - y) * sigma prime (z[k]) * W[k]
+        # mat mul: 1 x dn * dn x dm = 1 x dm
+        delta[last_layer] = grad_bias[last_layer] @ self.weights[last_layer]
+        
+        # Derivative of loss w.r.t. last layer weights
+        # dL/W^k    = dL/dy^ * dy^/dz[k] * dz[k]/dW[k] 
+        #           = dL/dz^k * dz[k]/dW[k] 
+        #           = (y^ - y) * sigma prime (z[k]) * a[k-1]
+        # outer prod: 1 x dm   1 x dn = dn x dm
+        grad_weights[last_layer] = torch.outer(delta[last_layer], activations[last_layer - 1])
+        
+        for i in range(1, self.num_layers - 1):
+            # c = k - n
+            current_layer = last_layer - i
+            
+            # diminsionality for surrounding layers
+            # layer[c+1]    = dn
+            # layer[c]      = dm
+            # layer[c-1]    = do
+            
+            # derivative of loss w.r.t bias at layer k - n
+            # dL/db[c]    = dL/dy^ * dy^/dz[k] * { PI (i: 0 -> n - 1) dz/[k - i] } * { PI (i: 1 -> n) da[k-i]/dz[k-i] } * dz[c]/db[c]
+            #               = dL/db[c+1] * dz[c]/da[c] * da[c]/db[c]
+            #               = dL/db[c+1] * W[c] * sigma prime (z[c]) * 1
+            # dL/db[c+1]: 1 x dn, W[c]: dm x do, sigma prime (z[c]): 1 x dm
+            grad_bias[current_layer] = grad_bias[current_layer + 1] @ self.weights[current_layer] * activation_derivative[current_layer]
+
+            # delta[c] = dL/da[c]
+            delta[current_layer] = delta[current_layer + 1] * self.weights[current_layer] * activation_derivative[current_layer]
+
+            # derivative of loss w.r.t weights at layer k - n
+            # dL/dW[c]    = dL/dy^ * dy^/dz[k] * { PI (i: 0 -> n - 1) dz[k-i]/da[k-i-1] } * { PI (i: 1 -> n ) da[k-i]/dz[k-i] }  * dz[c]/dW[c]
+            #               = dL/a[c+1]
+            grad_weights[current_layer] = grad_bias[current_layer] * activations[current_layer - 1]
+        
+        loss = (loss_derivative ** 2) / 2
+
+        return grad_weights, grad_bias, loss
+
+        
+
     def backwards(self, x: torch.tensor, y: torch.tensor):
         x = x.to('cuda:0')
         y = y.to('cuda:0')
@@ -169,7 +239,7 @@ class Network:
             print(f'Percent Correct: {score / len(dataset) * 100:.2f}%')
 
         def compute_pair(x: torch.tensor, y: torch.tensor):
-            gradient_derivative, gradients, loss = self.backwards(x, y)
+            gradient_derivative, gradients, loss = self.backwards_new(x, y)
             avg_item_loss = 0
             for l in list(loss):
                 avg_item_loss += l

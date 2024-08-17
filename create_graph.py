@@ -27,12 +27,15 @@ def get_plot_data_from_file(file_name: str):
     x = [i for i in range(0, len(data['losses']))]
     return f'a{data['alpha']} e{data['epochs']}', x, y
 
-data = []
-for file in os.listdir('results'):
-    if not '.json' in file:
-        continue
+def create_graphs():
+    data = []
+    for file in os.listdir('results'):
+        if not '.json' in file:
+            continue
 
-    title, x, y = get_plot_data_from_file(file)
-    data.append((title, (x, y)))
+        title, x, y = get_plot_data_from_file(file)
+        data.append((title, (x, y)))
 
-plot_graph('training stats', 'epoch', 'loss', data)
+    plot_graph('training stats', 'epoch', 'loss', data)
+
+create_graphs()
