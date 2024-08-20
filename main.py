@@ -44,13 +44,13 @@ def bench():
 
     start_time = time()
     for _ in range(0, 1000):
-        network.get_u_mat(train_dataset[0][0])
+        network.get_output_mat(train_dataset[0][0])
     print(f'Initialize get_u_mat time: {(time() - start_time):.6f}ms')
 
-    u = network.get_u_mat(train_dataset[0][0])
+    u = network.get_output_mat(train_dataset[0][0])
     start_time = time()
     for _ in range(0, 1000):
-        network.forward_u(u)
+        network.activate_output(u)
     print(f'Initialize forward_u time: {(time() - start_time):.6f}ms')
 
 # network.train(train_dataset, alpha, 100)

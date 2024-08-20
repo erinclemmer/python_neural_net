@@ -78,7 +78,7 @@ class Network:
             layers.append(torch.zeros(lyr.size()[0]).to('cuda:0'))
         return layers
 
-    def get_u_mat(self, x: torch.tensor):
+    def get_output_mat(self, x: torch.tensor):
         x = x.to('cuda:0')
         self.ensure_input_size(x)
         u = self.initialize_layer_matrix()
@@ -89,7 +89,7 @@ class Network:
             u[i] = torch.matmul(self.weights[i], u[i - 1]) + self.biases[i]
         return u
 
-    def forward_u(self, u: torch.tensor):
+    def activate_output(self, u: torch.tensor):
         x = self.initialize_layer_matrix()
         for i in range(0, self.num_layers):
             x[i] = self.activation(u[i])
@@ -99,8 +99,8 @@ class Network:
     def forward(self, x: torch.tensor):
         x = x.to('cuda:0')
         self.ensure_input_size(x)
-        u = self.get_u_mat(x)
-        return self.forward_u(u)
+        u = self.get_output_mat(x)
+        return self.activate_output(u)
     
     def predict(self, x: torch.tensor):
         x = x.to('cuda:0')
@@ -133,9 +133,10 @@ class Network:
     def backwards_new(self, inp: torch.tensor, truth: torch.tensor):
         inp = inp.to('cuda:0')
         truth = truth.to('cuda:0')
-        outp = self.get_u_mat(inp)
+        outp = self.get_output_mat(inp)
+        # test output
         y_hat = outp[self.num_layers - 1]
-        activations = self.forward_u(outp)
+        activations = self.activate_output(outp)
         loss_derivative = (y_hat - truth)
         activation_derivative = [self.activation_derivative(lyr) for lyr in outp]
 
@@ -147,64 +148,30 @@ class Network:
         grad_weights = self.initialize_layer_matrix()
         grad_bias = self.initialize_layer_matrix()
 
-        # diminsionality for surrounding layers
-        # weights[k]    = dn
-        # weights[k-1]  = dm
-
-        # Derivative of loss w.r.t last layer bias
-        # dL/db^k   = dL/dy^ * dy^/dz[k] * dz[k]/db[k] 
-        #           = (y^ - y) * sigma prime (z[k]) * 1
-        # element wise multiplication
         grad_bias[last_layer] = loss_derivative * activation_derivative[last_layer]
         
-        # Intermediate value for saving computation
-        # delta^k   = dL/da[k-1] = dL/dy^ * dy^/dz[k] * dz[k]/da[k-1] 
-        #           = (y^ - y) * sigma prime (z[k]) * W[k]
-        # mat mul: 1 x dn * dn x dm = 1 x dm
         delta[last_layer] = grad_bias[last_layer] @ self.weights[last_layer]
         
-        # Derivative of loss w.r.t. last layer weights
-        # dL/W^k    = dL/dy^ * dy^/dz[k] * dz[k]/dW[k] 
-        #           = dL/dz^k * dz[k]/dW[k] 
-        #           = (y^ - y) * sigma prime (z[k]) * a[k-1]
-        # outer prod: 1 x dm   1 x dn = dn x dm
-        grad_weights[last_layer] = torch.outer(delta[last_layer], activations[last_layer - 1])
+        grad_weights[last_layer] = torch.outer(grad_bias[last_layer], activations[last_layer - 1])
         
         for i in range(1, self.num_layers - 1):
-            # c = k - n
             current_layer = last_layer - i
             
-            # diminsionality for surrounding layers
-            # layer[c+1]    = dn
-            # layer[c]      = dm
-            # layer[c-1]    = do
-            
-            # derivative of loss w.r.t bias at layer k - n
-            # dL/db[c]    = dL/dy^ * dy^/dz[k] * { PI (i: 0 -> n - 1) dz/[k - i] } * { PI (i: 1 -> n) da[k-i]/dz[k-i] } * dz[c]/db[c]
-            #               = dL/db[c+1] * dz[c]/da[c] * da[c]/db[c]
-            #               = dL/db[c+1] * W[c] * sigma prime (z[c]) * 1
-            # dL/db[c+1]: 1 x dn, W[c]: dm x do, sigma prime (z[c]): 1 x dm
-            grad_bias[current_layer] = grad_bias[current_layer + 1] @ self.weights[current_layer] * activation_derivative[current_layer]
+            grad_bias[current_layer] = grad_bias[current_layer + 1] @ self.weights[current_layer + 1] * activation_derivative[current_layer]
 
-            # delta[c] = dL/da[c]
-            delta[current_layer] = delta[current_layer + 1] * self.weights[current_layer] * activation_derivative[current_layer]
+            delta[current_layer] = delta[current_layer + 1] * activation_derivative[current_layer] @ self.weights[current_layer]
 
-            # derivative of loss w.r.t weights at layer k - n
-            # dL/dW[c]    = dL/dy^ * dy^/dz[k] * { PI (i: 0 -> n - 1) dz[k-i]/da[k-i-1] } * { PI (i: 1 -> n ) da[k-i]/dz[k-i] }  * dz[c]/dW[c]
-            #               = dL/a[c+1]
-            grad_weights[current_layer] = grad_bias[current_layer] * activations[current_layer - 1]
+            grad_weights[current_layer] = torch.outer(delta[current_layer + 1] * activation_derivative[current_layer], outp[current_layer - 1])
         
         loss = (loss_derivative ** 2) / 2
 
         return grad_weights, grad_bias, loss
 
-        
-
     def backwards(self, x: torch.tensor, y: torch.tensor):
         x = x.to('cuda:0')
         y = y.to('cuda:0')
-        u = self.get_u_mat(x)
-        x = self.forward_u(u)
+        u = self.get_output_mat(x)
+        x = self.activate_output(u)
         z = x[self.num_layers - 1]
         error = y - z
         
