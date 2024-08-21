@@ -63,5 +63,43 @@ S' = softmax(\frac{s}{\sqrt{m}})
 $$
 
 $$
-O = S' \times V \in \reals^{c \times d}
+O = norm(S' \times V) \in \reals^{c \times d}
+$$
+
+## Feed Forward
+h: hidden layer dimension  
+a(): non-linear activation function
+
+$$
+W_1 \in \reals^{d \times h}, 
+W_2 \in \reals^{h \times d},
+b_1\in\reals^{c \times h},
+b_2\in\reals^{h \times c}
+$$
+
+$$
+O_1 = a(X W_1 + b_1) \in \reals^{c \times h}
+$$
+
+$$
+O_2 = O_1 W_2 + b_2 \in \reals^{c \times d}
+$$
+
+## Output
+Uses We from input encoding
+L: logits matrix
+P: probabilities matrix
+
+$$
+L = X W_e^t \in \reals^{c \times |V|}
+$$
+
+$$
+P = softmax(L)
+$$
+
+To determine the next token, take the index of the maximum probability for the last vector in P and use that as an index for V
+
+$$
+t_{next} = V[max\_idx(P[c])]
 $$
