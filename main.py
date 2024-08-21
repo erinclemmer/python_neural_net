@@ -4,7 +4,7 @@ from time import time
 from neural import Network
 from dataset import Dataset
 
-SAVE_FILE = 'model_relu.safetensors'
+SAVE_FILE = 'model.safetensors'
 
 dataset = Dataset('Iris.csv')
 
@@ -23,11 +23,11 @@ train_dataset = [(o.network_input, o.network_output) for o in dataset.data_objec
 def train():
     global network
 
-    if os.path.exists(SAVE_FILE):
-        network.load(SAVE_FILE)
-    else:
-        network.train(train_dataset, alpha, 100)
-        network.save(SAVE_FILE)
+    # if os.path.exists(SAVE_FILE):
+    #     network.load(SAVE_FILE)
+    # else:
+    #     network.train(train_dataset, alpha, 100)
+    #     network.save(SAVE_FILE)
     
     network.train(train_dataset, alpha, 100)
 

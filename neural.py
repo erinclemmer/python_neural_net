@@ -211,8 +211,8 @@ class Network:
             for l in list(loss):
                 avg_item_loss += l
             for j in range(1, self.num_layers):
-                self.weights[j] += alpha * gradient_derivative[j]
-                self.biases[j] += alpha * gradients[j]
+                self.weights[j] -= alpha * gradient_derivative[j]
+                self.biases[j] -= alpha * gradients[j]
             return avg_item_loss / y.size()[0]
 
         def do_epoch():

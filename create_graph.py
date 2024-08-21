@@ -10,7 +10,7 @@ def plot_graph(title: str, x_name: str, y_name: str, data: List[Tuple[str, Tuple
         plt.plot(item[1][0], item[1][1], marker='o', label=item[0])
     plt.xlabel(x_name)
     plt.ylabel(y_name)
-    plt.ylim(top=1)
+    plt.ylim(top=.5, bottom=0)
     plt.title(f"{x_name} vs {y_name}")
     plt.grid(True)
     plt.legend()
