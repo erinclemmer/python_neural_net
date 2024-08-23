@@ -29,6 +29,8 @@ X_t \in \reals^{1 \times d},
 X \in \reals^{c \times d} 
 $$
 
+$$ inp(x) $$
+
 ## Attention Head
 $$
 W_q, W_k, W_v \in \reals^{d \times d}
@@ -66,6 +68,11 @@ $$
 O = norm(S' \times V) \in \reals^{c \times d}
 $$
 
+
+$$
+attn(X)
+$$
+
 ## Feed Forward
 h: hidden layer dimension  
 a(): non-linear activation function
@@ -85,13 +92,22 @@ $$
 O_2 = O_1 W_2 + b_2 \in \reals^{c \times d}
 $$
 
+$$
+FF(X)
+$$
+
 ## Output
-Uses We from input encoding
-L: logits matrix
-P: probabilities matrix
+Uses We from input encoding  
+Lo: logits matrix  
+P: probabilities matrix  
+Wu: unembedding weights
 
 $$
-L = X W_e^t \in \reals^{c \times |V|}
+W_u \in \reals^{d \times |v|}
+$$
+
+$$
+L_o = X W_u^t \in \reals^{c \times |V|}
 $$
 
 $$
@@ -102,4 +118,50 @@ To determine the next token, take the index of the maximum probability for the l
 
 $$
 t_{next} = V[max\_idx(P[c])]
+$$
+
+$$O(X)$$
+
+## Loss function
+Using cross entropy
+
+Loss per token
+$$
+L_i = - \sum_{j=1}^{V} y_{ij} log(\hat{y}_{ij}) = -log(\hat{y}_{ij*})
+$$
+\* denotes vector of expected token
+
+TODO  
+Loss vector
+$$
+L = L_i() \in \reals^{1 \times c}
+$$
+
+Average Loss
+$$
+L_i = - \frac{1}{N} \sum_{i=0}^{N} log(\hat{y}_{ij*})
+$$
+
+## Output (backwards)
+$$
+\frac{dL}{W_u} = 
+\frac{dL}{d\hat{y}_{ij*}} \times
+\frac{d\hat{y}_{ij*}}{dL_o}
+
+
+$$
+
+Derivative of loss fn
+$$
+\frac{dL}{d\hat{y}_{ij*}} =
+-\frac{1}{\hat{y}_{ij*}}
+$$
+
+TODO  
+Derivative of softmax
+$$
+\frac{d\hat{y}_{ij*}}{dL_o} =
+\begin{cases}
+\hat{y}_{ij*}
+\end{cases}
 $$
