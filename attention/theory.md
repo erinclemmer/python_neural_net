@@ -98,8 +98,8 @@ $$
 
 ## Output
 Uses We from input encoding  
-Lo: logits matrix  
-P: probabilities matrix  
+Z: logits matrix  
+y hat: probabilities matrix  
 Wu: unembedding weights
 
 $$
@@ -107,17 +107,23 @@ W_u \in \reals^{d \times |v|}
 $$
 
 $$
-L_o = X W_u^t \in \reals^{c \times |V|}
+Z = X W_u^t \in \reals^{c \times |V|}
 $$
 
 $$
-P = softmax(L)
+\hat{y} = 
+\frac{e^{z_j}}
+{\sum^V_{k=i}{e^{z_k}}}
+(\forall z_j \in z) 
+
+\in \reals^{c \times |V|}
 $$
+^ Softmax Function
 
 To determine the next token, take the index of the maximum probability for the last vector in P and use that as an index for V
 
 $$
-t_{next} = V[max\_idx(P[c])]
+t_{next} = V[max\_idx(\hat{y}[c])]
 $$
 
 $$O(X)$$
@@ -131,10 +137,9 @@ L_i = - \sum_{j=1}^{V} y_{ij} log(\hat{y}_{ij}) = -log(\hat{y}_{ij*})
 $$
 \* denotes vector of expected token
 
-TODO  
 Loss vector
 $$
-L = L_i() \in \reals^{1 \times c}
+L = L_i(\hat{y}_{ij}) \in \reals^{1 \times c}
 $$
 
 Average Loss
@@ -144,11 +149,10 @@ $$
 
 ## Output (backwards)
 $$
-\frac{dL}{W_u} = 
-\frac{dL}{d\hat{y}_{ij*}} \times
-\frac{d\hat{y}_{ij*}}{dL_o}
-
-
+\frac{dL}{dW_u} = 
+\frac{dL}{d\hat{y}} \times
+\frac{d\hat{y}}{dz} \times
+\frac{dz}{dW_u}
 $$
 
 Derivative of loss fn
@@ -157,11 +161,12 @@ $$
 -\frac{1}{\hat{y}_{ij*}}
 $$
 
-TODO  
 Derivative of softmax
 $$
-\frac{d\hat{y}_{ij*}}{dL_o} =
+\frac{d\hat{y}}{dz} =
 \begin{cases}
-\hat{y}_{ij*}
+\hat{y}_{j}(1 - \hat{y}_j) & \text{if } i = j\\
+-\hat{y}_j \hat{y}_i & \text{if } i \ne j
 \end{cases}
 $$
+
