@@ -114,7 +114,7 @@ $$
 \hat{y} = 
 \frac{e^{z_j}}
 {\sum^V_{k=i}{e^{z_k}}}
-(\forall z_j \in z) 
+(\forall z_j \in Z) 
 
 \in \reals^{c \times |V|}
 $$
