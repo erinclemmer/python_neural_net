@@ -103,7 +103,7 @@ y hat: probabilities matrix
 Wu: unembedding weights
 
 $$
-W_u \in \reals^{d \times |v|}
+W_u \in \reals^{d \times |v|}, X\in \reals^{c \times d}
 $$
 
 $$
@@ -111,14 +111,28 @@ Z = X W_u^t \in \reals^{c \times |V|}
 $$
 
 $$
-\hat{y} = 
-\frac{e^{z_j}}
-{\sum^V_{k=i}{e^{z_k}}}
-(\forall z_j \in Z) 
-
-\in \reals^{c \times |V|}
+\sigma(z_{t,j}) =
+\frac{e^{z_{t,j}}}
+{\sum^V_{k=i}{e^{z_{t,k}}}}
 $$
 ^ Softmax Function
+
+$$
+i = \{ 1, ..., c \}
+$$
+
+$$
+j = \{ 1, ..., |V| \}
+$$
+
+$$
+
+\hat{y} = 
+\{
+\sigma(z_{i,j}) | \forall i,j
+\}
+\in \reals^{c \times |V|}
+$$
 
 To determine the next token, take the index of the maximum probability for the last vector in P and use that as an index for V
 
@@ -155,18 +169,42 @@ $$
 \frac{dz}{dW_u}
 $$
 
+such that
+
+$$
+\frac{dL}{dW_u} \in \reals^{d \times |V|}
+$$
+
+$$
+\hat{y} \in \reals^{c \times |V|}, L \in \reals^{c}
+$$
+
+
 Derivative of loss fn
 $$
 \frac{dL}{d\hat{y}_{ij*}} =
 -\frac{1}{\hat{y}_{ij*}}
+\in \reals^{1 \times c}
+$$
+
+$$
+\frac{dL}{d\hat{y}_{ij*}} \in \reals^{c \times |V|}
 $$
 
 Derivative of softmax
 $$
-\frac{d\hat{y}}{dz} =
+\frac{d\hat{y}_i}{dz_j} =
 \begin{cases}
 \hat{y}_{j}(1 - \hat{y}_j) & \text{if } i = j\\
 -\hat{y}_j \hat{y}_i & \text{if } i \ne j
 \end{cases}
 $$
 
+$$
+\frac{d\hat{y}_i}{dz_j} \in \reals^{c \times |V| \times |V|}
+$$
+
+Derivative of output fn
+$$
+\frac{dz}{dW_u} = X \in \reals^{c \times d}
+$$
