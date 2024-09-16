@@ -85,15 +85,11 @@ b_2\in\reals^{h \times c}
 $$
 
 $$
-O_1 = a(X W_1 + b_1) \in \reals^{c \times h}
+Y_1 = a(X W_1 + b_1) \in \reals^{c \times h}
 $$
 
 $$
-O_2 = O_1 W_2 + b_2 \in \reals^{c \times d}
-$$
-
-$$
-FF(X)
+Y_2 = Y_1 W_2 + b_2 \in \reals^{c \times d}
 $$
 
 ## Output
@@ -225,4 +221,62 @@ $$
 Diminsionality
 $$
 ((|V| \times c)(c \times d))^t = d \times |V|
+$$
+
+## Feed Forward backwards
+R: residual stream
+$$
+R \in \reals^{c \times d}
+$$
+
+$$
+\frac{dY}{dW_1}, \frac{dY}{dW_2}, \frac{dY}{db_1}, \frac{dY}{db_2}
+$$
+
+$$
+\frac{dY_2}{dW_2} = Y_1
+$$
+
+$$
+\frac{dY_2}{db_2} = 1
+$$
+
+$$
+\frac{dY_2}{dW_1} =
+\frac{dY_2}{dY_1} \times
+\frac{dY_1}{dz} \times
+\frac{dz}{dW_1}
+$$
+
+$$
+\frac{dY_2}{dY_1} = W_2
+$$
+
+$$
+\frac{dY_2}{dz} = \sigma'(z)
+$$
+
+
+$$
+
+$$
+
+$$
+W_1 \in \reals^{d \times h}, 
+W_2 \in \reals^{h \times d},
+b_1\in\reals^{c \times h},
+b_2\in\reals^{h \times c}
+$$
+
+$$
+z = X W_1 + b_1
+\in \reals^{c \times h}
+$$
+
+$$
+Y_1 = \sigma(z)
+$$
+
+$$
+Y_2 = Y_1 W_2 + b_2 \in \reals^{c \times d}
 $$
