@@ -204,7 +204,25 @@ $$
 \frac{d\hat{y}_i}{dz_j} \in \reals^{c \times |V| \times |V|}
 $$
 
+Special rule for cross entropy + softmax
+
+$$
+\frac{dL}{dz} = \hat{y} - y
+$$
+where y is one-hot vector
+
 Derivative of output fn
 $$
 \frac{dz}{dW_u} = X \in \reals^{c \times d}
+$$
+
+Alltogether
+$$
+\frac{dL}{dW_u} = 
+((\hat{y} - y)^tX)^t
+$$
+
+Diminsionality
+$$
+((|V| \times c)(c \times d))^t = d \times |V|
 $$
