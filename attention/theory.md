@@ -80,12 +80,19 @@ a(): non-linear activation function
 $$
 W_1 \in \reals^{d \times h}, 
 W_2 \in \reals^{h \times d},
+Y_1 \in \reals^{c \times h},
 b_1\in\reals^{c \times h},
 b_2\in\reals^{h \times c}
 $$
 
 $$
-Y_1 = a(X W_1 + b_1) \in \reals^{c \times h}
+z = R W_1 + b_1
+\in \reals^{c \times h}
+$$
+
+$$
+Y_1 = \sigma(z)
+\in \reals^{c \times h}
 $$
 
 $$
@@ -230,11 +237,8 @@ R \in \reals^{c \times d}
 $$
 
 $$
-\frac{dY}{dW_1}, \frac{dY}{dW_2}, \frac{dY}{db_1}, \frac{dY}{db_2}
-$$
-
-$$
 \frac{dY_2}{dW_2} = Y_1
+\in \reals^{c \times h}
 $$
 
 $$
@@ -253,30 +257,33 @@ $$
 $$
 
 $$
-\frac{dY_2}{dz} = \sigma'(z)
-$$
-
-
+\frac{dY_1}{dz} = \sigma'(z)
 $$
 
 $$
-
-$$
-W_1 \in \reals^{d \times h}, 
-W_2 \in \reals^{h \times d},
-b_1\in\reals^{c \times h},
-b_2\in\reals^{h \times c}
+\frac{dz}{dW_2} =
+R \in \reals^{c \times d}
 $$
 
 $$
-z = X W_1 + b_1
+\frac{dY_2}{dW_1} =
+R W_2^t \times \sigma'(z)
 \in \reals^{c \times h}
 $$
 
 $$
-Y_1 = \sigma(z)
+\frac{dY_2}{db_1} = 
+\frac{dY_2}{dY_1} \times
+\frac{dY_1}{dz} \times
+\frac{dz}{db_1}
 $$
 
 $$
-Y_2 = Y_1 W_2 + b_2 \in \reals^{c \times d}
+\frac{dz}{db_1} = 1
+$$
+
+$$
+\frac{dY_2}{db_1} = 
+R W_2^t
+\in \reals^{c \times h}
 $$
