@@ -99,6 +99,10 @@ $$
 Y_2 = Y_1 W_2 + b_2 \in \reals^{c \times d}
 $$
 
+$$
+FF(R): \reals^{c \times d} \rightarrow \reals^{c \times d}
+$$
+
 ## Output
 Uses We from input encoding  
 Z: logits matrix  
@@ -143,7 +147,7 @@ $$
 t_{next} = V[max\_idx(\hat{y}[c])]
 $$
 
-$$O(X)$$
+$$O(X): \reals^{c \times d} \rightarrow \reals^{c \times |V|}$$
 
 ## Loss function
 Using cross entropy
@@ -175,42 +179,16 @@ $$
 such that
 
 $$
-\frac{dL}{dW_u} \in \reals^{d \times |V|}
-$$
-
-$$
-\hat{y} \in \reals^{c \times |V|}, L \in \reals^{c}
-$$
-
-
-Derivative of loss fn
-$$
-\frac{dL}{d\hat{y}_{ij*}} =
--\frac{1}{\hat{y}_{ij*}}
-\in \reals^{1 \times c}
-$$
-
-$$
-\frac{dL}{d\hat{y}_{ij*}} \in \reals^{c \times |V|}
-$$
-
-Derivative of softmax
-$$
-\frac{d\hat{y}_i}{dz_j} =
-\begin{cases}
-\hat{y}_{j}(1 - \hat{y}_j) & \text{if } i = j\\
--\hat{y}_j \hat{y}_i & \text{if } i \ne j
-\end{cases}
-$$
-
-$$
-\frac{d\hat{y}_i}{dz_j} \in \reals^{c \times |V| \times |V|}
+W_u \in \reals^{d \times |V|},
+X \in \reals^{c \times d},
+\hat{y} \in \reals^{c \times |V|}
 $$
 
 Special rule for cross entropy + softmax
 
 $$
 \frac{dL}{dz} = \hat{y} - y
+\in \reals^{c \times |V|}
 $$
 where y is one-hot vector
 
@@ -223,11 +201,26 @@ Alltogether
 $$
 \frac{dL}{dW_u} = 
 ((\hat{y} - y)^tX)^t
+\in \reals^{d \times |V|}
 $$
 
-Diminsionality
+To pass further down
 $$
-((|V| \times c)(c \times d))^t = d \times |V|
+\frac{dL}{dX} =
+\frac{dL}{d\hat{y}} \times
+\frac{d\hat{y}}{dz} \times
+\frac{dz}{dX}
+$$
+
+$$
+\frac{dz}{dX} =
+W_u
+$$
+
+$$
+\frac{dL}{dX} =
+(\hat{y} - y) W_u^t
+\in \reals^{c \times d}
 $$
 
 ## Feed Forward backwards
@@ -286,4 +279,29 @@ $$
 \frac{dY_2}{db_1} = 
 R W_2^t
 \in \reals^{c \times h}
+$$
+
+## Feedforward + output backwards
+
+$$
+\frac{dL}{dW_{1ff}} =
+\frac{dL}{dX_o} \times
+\frac{dX_o}{dW_{2ff}}
+$$
+
+$$
+\frac{dL}{dX_{o}} =
+(\hat{y} - y) W_u^t
+\in \reals^{c \times d}
+$$
+
+$$
+\frac{dX_o}{dW_{2ff}} =
+Y_1 \in \reals^{c \times h}
+$$
+
+$$
+\frac{dL}{dW_{2ff}} =
+(((\hat{y} - y) W_u^t)^t Y_1)^t
+\in \reals^{h \times d}
 $$
