@@ -284,7 +284,7 @@ $$
 ## Feedforward + output backwards
 
 $$
-\frac{dL}{dW_{1ff}} =
+\frac{dL}{dW_{2ff}} =
 \frac{dL}{dX_o} \times
 \frac{dX_o}{dW_{2ff}}
 $$
@@ -305,3 +305,15 @@ $$
 (((\hat{y} - y) W_u^t)^t Y_1)^t
 \in \reals^{h \times d}
 $$
+
+$$
+\frac{dL}{db_{2ff}} =
+(\hat{y} - y) W_u^t
+\in \reals^{h \times c}
+$$
+
+$$
+R(r) = norm(r + f(r))
+$$
+
+where f is the FF or attn function
